@@ -1,8 +1,6 @@
 package geoborder
 
 import (
-	"fmt"
-
 	"github.com/golang/geo/s1"
 	"github.com/golang/geo/s2"
 	"github.com/google/btree"
@@ -42,19 +40,13 @@ func (i *Index) AddPolygon(polygonID uint32, vertices []s2.LatLng) error {
 	}()
 
 	loop := s2.LoopFromPoints(points)
+	loop.Normalize()
 	polygon := s2.PolygonFromLoops([]*s2.Loop{loop})
 
-	fmt.Println("area km^2", loop.Area()*6400*6400)
-
-	//coverer := s2.RegionCoverer{MinLevel: i.storageLevel, MaxLevel: i.storageLevel}
-	coverer := s2.RegionCoverer{MaxLevel: i.storageLevel}
-
+	coverer := s2.RegionCoverer{MinLevel: i.storageLevel, MaxLevel: i.storageLevel}
 	cells := coverer.Covering(loop)
 
-	fmt.Println(len(cells), "cells")
-
 	for _, cell := range cells {
-		fmt.Println("levrl", cell.Level())
 		ii := IndexItem{cellID: cell}
 		item := i.bt.Get(ii)
 		if item != nil {
@@ -112,6 +104,7 @@ func (i *Index) searchNextLevel(radiusEdges []s2.CellID, alreadyVisited *[]s2.Ce
 }
 
 func (i *Index) filter(lon, lat float64, found []IndexItem) []uint32 {
+
 	var minDistance s1.ChordAngle
 	var minPolygon uint32
 
@@ -123,7 +116,10 @@ func (i *Index) filter(lon, lat float64, found []IndexItem) []uint32 {
 			for i := 0; i < polygon.NumEdges(); i++ {
 				edge := polygon.Edge(i)
 				distance := cell.DistanceToEdge(edge.V0, edge.V1)
-				if distance < minDistance {
+				if distance == 0 {
+					minDistance = distance
+					minPolygon = polygonID
+				} else if distance < minDistance {
 					minDistance = distance
 					minPolygon = polygonID
 				}
