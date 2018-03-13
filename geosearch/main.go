@@ -37,12 +37,10 @@ func (i *Index) AddUser(userID uint32, lon, lat float64) error {
 	ul := userList{cellID: cellIDOnStorageLevel, list: nil}
 
 	item := i.bt.Get(ul)
-	if item == nil {
-		ul.list = []uint32{userID}
-	} else {
+	if item != nil {
 		ul = item.(userList)
-		ul.list = append(ul.list, userID)
 	}
+	ul.list = append(ul.list, userID)
 
 	i.bt.ReplaceOrInsert(ul)
 
